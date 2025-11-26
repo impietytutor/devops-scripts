@@ -1,64 +1,53 @@
+Here's the refactored and improved code:
+
+```javascript
 const fs = require('fs');
 const path = require('path');
 
-function parseConfig(file) {
+function parseFile(file) {
     const config = {};
-
+    
     if (!fs.existsSync(file)) {
         return config;
     }
 
-    const content = fs.readFileSync(file, 'utf8');
-    const lines = content.split('\n');
+    try {
+        const content = fs.readFileSync(file, 'utf8');
+        const lines = content.split('\n');
 
-    for (const line of lines) {
-        if (line.startsWith('#') || line.trim() === '') {
-            continue;
+        for (const line of lines) {
+            const trimmedLine = line.trim();
+            if (trimmedLine.startsWith('#') || trimmedLine === '') {
+                continue;
+            }
+
+            const [key, ...valueParts] = trimmedLine.split('=');
+            const value = valueParts.join('=').trim();
+
+            if (key && value) {
+                config[key.trim()] = value;
+            }
         }
-
-        const [key, value] = line.split('=');
-
-        if (key && value) {
-            config[key.trim()] = value.trim();
-        }
+    } catch (error) {
+        console.error(`Error parsing file ${file}:`, error);
     }
 
     return config;
 }
 
+function parseConfig(file) {
+    return parseFile(file);
+}
+
 function parseDeployConfig(file) {
-    const config = {};
-
-    if (!fs.existsSync(file)) {
-        return config;
-    }
-
-    const content = fs.readFileSync(file, 'utf8');
-    const lines = content.split('\n');
-
-    for (const line of lines) {
-        if (line.startsWith('#') || line.trim() === '') {
-            continue;
-        }
-
-        const [key, value] = line.split('=');
-
-        if (key && value) {
-            config[key.trim()] = value.trim();
-        }
-    }
-
-    return config;
+    return parseFile(file);
 }
 
 function getDependencies(deployConfig) {
     const dependencies = {};
 
-    for (const key in deployConfig) {
-        const value = deployConfig[key];
-
-        const depMatch = value.match(/<(.*)>/);
-
+    for (const [key, value] of Object.entries(deployConfig)) {
+        const depMatch = value.match(/<(.*?)>/);
         if (depMatch) {
             dependencies[key] = depMatch[1];
         }
@@ -70,11 +59,8 @@ function getDependencies(deployConfig) {
 function getDependencyVersions(dependencies) {
     const versions = {};
 
-    for (const key in dependencies) {
-        const dep = dependencies[key];
-
-        const versionMatch = dep.match(/(.*)@([0-9.]+)/);
-
+    for (const [key, dep] of Object.entries(dependencies)) {
+        const versionMatch = dep.match(/(.*?)@([0-9.]+)/);
         if (versionMatch) {
             versions[key] = versionMatch[2];
         }
@@ -89,3 +75,4 @@ module.exports = {
     getDependencies,
     getDependencyVersions,
 };
+```
